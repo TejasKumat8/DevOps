@@ -204,3 +204,6 @@ The output confirmed `cron` service start/stop events under `-u cron`. Filtering
 Session verification demonstrating core permission and process execution commands:
 
 ![basic commands](screenshots/basic-commands.png)
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

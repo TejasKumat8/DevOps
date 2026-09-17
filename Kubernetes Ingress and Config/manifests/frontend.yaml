@@ -14,7 +14,7 @@ data:
         <h1>Campus Portal - Frontend</h1>
         <p>Served by the <code>campus-frontend</code> Deployment through the NGINX Ingress.</p>
         <p>Try <a href="/api/">/api/</a> for the backend.</p>
-        <p>DevOps Engineering Lab &middot; Tejas Kumat</p>
+        <p>Tejas Kumat &middot; 24BCS10299</p>
       </body>
     </html>
 ---

@@ -43,3 +43,6 @@ kubectl exec client -- curl -s -o /dev/null -w "HTTP %{http_code}\n" -H "Host: e
   issued for the real hostname and SNI has to match it.
 
 ![ExternalName run](screenshots/externalname-terminal.png)
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

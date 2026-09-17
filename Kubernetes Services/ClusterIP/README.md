@@ -83,3 +83,6 @@ kubectl exec client -- curl -s -m 5 -o /dev/null -w 'HTTP %{http_code}\n' http:/
 
 `kubectl get endpointslices` is therefore the first command to run whenever a Service "exists
 but doesn't work" — it answers "is anything actually behind this?" in one line.
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

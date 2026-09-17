@@ -130,3 +130,6 @@ ipconfig getifaddr en0      # macOS; on Linux use: hostname -I
 Prints system network hostname, fully qualified domain name (`-f`), and assigned interface IP address. On Linux systems, `hostname -I` lists all active non-loopback network addresses.
 
 ![hostname](screenshots/hostname.png)
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

@@ -161,3 +161,6 @@ docker network rm public-net app-net data-net
 ```
 
 ![cleanup](screenshots/cleanup.png)
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

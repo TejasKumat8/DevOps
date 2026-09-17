@@ -23,3 +23,6 @@ slookup, 	raceroute, and hostname. |
 - **Primary OS**: macOS / Linux Workstation running Docker Desktop & Minikube (v1.37.0).
 - **Container Operations**: Commands requiring specific Linux kernel interfaces were executed inside an isolated ubuntu:24.04 container environment.
 - **Kubernetes Environment**: Single-node Minikube cluster running on the Docker driver.
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

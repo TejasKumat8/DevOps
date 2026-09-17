@@ -148,3 +148,6 @@ experiment.
 | `kubectl run` / `kubectl create` | Quick imperative creation, useful for scratch work |
 | `kubectl explain <type.field>` | Built-in field documentation |
 | `kubectl config get-contexts` | Check which cluster you are actually talking to |
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

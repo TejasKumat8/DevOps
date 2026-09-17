@@ -51,3 +51,6 @@ kubectl exec client -- curl -s -o /dev/null -w "HTTP %{http_code} via %{remote_i
   also tries AAAA and walks the search domains, which buries the answer in NXDOMAIN noise.
 
 ![Headless run](screenshots/headless-terminal.png)
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

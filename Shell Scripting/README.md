@@ -82,3 +82,6 @@ Verification of output file creation and line count analysis via `ls`, `head`, a
 ![saved report](screenshots/saved-report.png)
 
 *Note*: The generated `reports/` directory represents a runtime output artifact and is excluded from version control via `.gitignore`.
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299

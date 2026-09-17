@@ -123,3 +123,6 @@ config v1 + port fix
 - The cherry-picked commit received a new commit SHA (`5dbc089`) because its parent commit differed from the original branch history, even though the diff and message remained identical.
 - In case of merge conflicts during cherry-picking, Git pauses execution, allowing resolution before completing via `git cherry-pick --continue` (or aborting via `git cherry-pick --abort`).
 - Handy variants include: `git cherry-pick A..B` (cherry-pick range of commits), `-n` (apply changes to working directory without committing), and `-x` (append original commit reference hash to commit message).
+---
+
+**Tejas Kumat** · Roll No. 24BCS10299
