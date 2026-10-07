@@ -1,28 +1,34 @@
-# DevOps Engineering Coursework & Lab Exercises
+# DevOps Coursework
 
-Hands-on practical implementation notes, scripts, and containerized applications built during the DevOps coursework. Each module directory contains a dedicated README featuring exact command execution sequences, detailed runtime output summaries, and verified execution screenshots.
+DevOps Engineering Coursework, Automation Scripts & Kubernetes Labs, one folder per topic. Each folder has its own
+README with the commands that were run, the output, and screenshots from the run.
 
-## Module Directory Structure
-
-| Module Directory | Topic Overview |
+| Folder | Topic |
 |---|---|
-| Linux Fundamentals/ | Inode deep-dive (hard vs symbolic links), account creation utilities (useradd vs dduser), system service logging with journalctl, and essential Linux command cheat sheet. |
-| Shell Scripting/ | sysinfo.sh automated system diagnostics script utilizing environment variables, user prompt handling, dynamic directory creation, and output redirection (>). |
-| Networking Fundamentals/ | Comprehensive practical breakdown of core networking tools: ping, ip, ss, curl, wget, 
-slookup, 	raceroute, and hostname. |
-| Git and Github/ | In-depth exploration of Git staging area semantics (git commit -m vs -a -m) and targeted commit migration using git cherry-pick. |
-| Docker Fundamentals/ | Multi-language container deployments: Node.js, Python/Flask, Java, Apache HTTP Server, React (Vite multi-stage), and Nginx. |
-| DockerFiles and Images/ | Optimized multi-stage Docker build for Go binaries, reducing build environment size from ~365 MB down to ~7 MB on a minimal scratch image. |
-| Docker Networks/ | Container isolation with custom bridge networks, host networking mode, bind mounts, and distributed overlay network architecture. |
-| Kubernetes Fundamentals/ | Minikube cluster architecture, control plane components (kube-apiserver, etcd, kubelet), kube-system static pods, node capacity allocation, first Pod lifecycle events, and namespace isolation. |
-| Kubernetes Workloads/ | Orchestration objects: bare Pods vs ReplicaSets (self-healing & scaling), Deployments (zero-downtime rolling updates, change history & rollbacks), and DaemonSets (node-level agents). |
-| Kubernetes Services/ | In-cluster service discovery & network exposure patterns: ClusterIP, NodePort, LoadBalancer, Headless (DNS stateful services), and ExternalName. |
-| Kubernetes Ingress and Config/ | External HTTP application routing with NGINX Ingress Controller, decoupled environment configuration via ConfigMaps, base64-encoded Secrets, and environment variable injection. |
+| `Linux Fundamentals/` | Hard vs soft links, `useradd` vs `adduser`, `journalctl`, command cheat sheet |
+| `Shell Scripting/` | `sysinfo.sh`: variables, user input, `mkdir`/`touch`, output redirection |
+| `Networking Fundamentals/` | `ping`, `ip`, `ss`, `curl`, `wget`, `nslookup`, `traceroute`, `hostname` |
+| `Git and Github/` | `git commit -a` vs `-m`, `git cherry-pick` |
+| `Docker Fundamentals/` | Six Hello World containers: Node.js, Python, Java, Apache, React, Nginx |
+| `DockerFiles and Images/` | Multi-stage Go build, 365 MB toolchain to a 7 MB image |
+| `Docker Networks/` | Multi-network containers, host network, bind mounts, overlay networks |
+| `Kubernetes Fundamentals/` | Cluster architecture, kube-system Pods, node capacity, first Pod, namespaces |
+| `Kubernetes Workloads/` | Pods, ReplicaSets, Deployments, rolling updates and rollback, DaemonSets |
+| `Kubernetes Services/` | The five Service types on Minikube: ClusterIP, NodePort, LoadBalancer, Headless, ExternalName |
+| `Kubernetes Ingress and Config/` | ConfigMaps, Secrets, and NGINX Ingress routing by host and path |
+| `Kubernetes Ingress and Config Advanced/` | ConfigMap/Secret mounts and live updates, Secrets in etcd and Git history, Ingress with and without a controller, TLS, five broken → fixed scenarios |
+| `Kubernetes Storage HPA and Probes/` | emptyDir, hostPath, PV/PVC, StorageClass, reclaim policy, HPA scale up/down, liveness/readiness/startup probes, mini project |
+| `Kubernetes Troubleshooting/` | Debug commands, 11 common failures (CrashLoopBackOff to OOMKilled), triage gauntlet, mini project |
+| `Helm/` | Helm commands, chart scaffolding, upgrade/rollback, dev/prod values mini project |
+| `CI-CD GitHub Actions/` | Lint, test and Docker build pipeline with GitHub Actions |
+| `DevSecOps Pipeline/` | Secret scanning, SAST, dependency and image scanning, hardened image |
+| `Terraform and AWS/` | IAM, EC2, S3, VPC, DynamoDB/RDS and the Terraform workflow (LocalStack) |
+| `Cloud Terraform Project/` | VPC, subnets, security group, EC2 with user data and S3 as one Terraform project |
+| `Monitoring Observability and GitOps/` | Prometheus, Alertmanager, Loki, Grafana, observability concepts, Argo CD GitOps |
+| `Final DevOps Project & Troubleshooting/` | Session 21: three-tier app run manually and with Docker Compose, API tests |
 
-## Test Environment Context
-- **Primary OS**: macOS / Linux Workstation running Docker Desktop & Minikube (v1.37.0).
-- **Container Operations**: Commands requiring specific Linux kernel interfaces were executed inside an isolated ubuntu:24.04 container environment.
-- **Kubernetes Environment**: Single-node Minikube cluster running on the Docker driver.
----
+Environment: macOS with Docker Desktop; Linux-only commands were run in Ubuntu 24.04 containers.
+The Kubernetes exercises run on a single-node Minikube cluster using the Docker driver. The AWS
+exercises run against LocalStack, an AWS emulator in Docker.
 
-**Tejas Kumat** · Roll No. 24BCS10299
+Submitted by **Tejas Kumat** (Roll No. 24BCS10301).

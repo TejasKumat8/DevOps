@@ -1,38 +1,39 @@
-# Shell Scripting — `sysinfo.sh`
+# Shell Scripting - sysinfo.sh
 
-Automated Bash diagnostic script designed to collect system health metrics, prompt the user for output destination preferences, and record running process snapshots using standard I/O redirection.
+A small Bash script that summarises the machine it runs on, asks where to put a report, and
+writes the full process list to that report with output redirection.
 
-## Requirement Mapping
+## Requirements covered
 
-| Task Objective | Implementation Mechanism |
+| Requirement | How the script does it |
 |---|---|
-| Display date, hostname, user identity | Command substitution `$(...)` wrapping `date`, `hostname`, `whoami` |
-| Summarize storage usage | Execution of `df -h` parsed with `awk` for root filesystem metrics |
-| Query running processes | `ps aux` pipeline sorted by CPU utilization (`sort -rk 3`) capped to top 10 |
-| Shell variables | Declared `current_date`, `hostname_val`, `active_user`, `disk_info`, `proc_count`, `report_dir`, `report_file` |
-| Interactive user input | Shell built-in prompt `read -p` |
-| Directory creation | Directory provisioning with `mkdir -p "$report_dir"` |
-| File creation | Target file generation using `touch "$report_dir/$report_file"` |
-| Standard output redirection | Writing raw output stream using `ps aux > "$report_dir/$report_file"` |
+| Print date, hostname, user | `date`, `hostname`, `whoami` captured with `$(...)` |
+| Show disk usage | `df -h`, plus a one-line summary parsed with `awk` |
+| Show running processes | `ps aux`, sorted by CPU, top 10 |
+| Use variables | `today`, `box`, `me`, `disk`, `proc_count`, `report_dir`, `report_file` |
+| Read user input | two `read -p` prompts |
+| Create a directory | `mkdir -p "$report_dir"` |
+| Create a file | `touch "$report_dir/$report_file"` |
+| Redirect output to the file | `ps aux > "$report_dir/$report_file"` |
 
-## Script Implementation
+## The script
 
 ```bash
 #!/bin/bash
-# sysinfo.sh - System summary generator and process list logger.
-# Displays host statistics and outputs active process records to a custom directory.
+# sysinfo.sh - print a quick system summary, then save the process list
+# to a file whose location the user chooses at runtime.
 
-current_date=$(date)
-hostname_val=$(hostname)
-active_user=$(whoami)
-disk_info=$(df -h / | awk 'NR==2 {print $5 " used of " $2}')
+today=$(date)
+box=$(hostname)
+me=$(whoami)
+disk=$(df -h / | awk 'NR==2 {print $5 " used of " $2}')
 proc_count=$(ps aux | wc -l | tr -d ' ')
 
 echo "=== System summary ==="
-echo "Date        : $current_date"
-echo "Host        : $hostname_val"
-echo "User        : $active_user"
-echo "Root disk   : $disk_info"
+echo "Date        : $today"
+echo "Host        : $box"
+echo "User        : $me"
+echo "Root disk   : $disk"
 echo "Processes   : $proc_count running"
 echo
 
@@ -50,38 +51,36 @@ read -p "Report file name: " report_file
 mkdir -p "$report_dir"
 touch "$report_dir/$report_file"
 
-# Write detailed process list to target file using stdout redirection
+# Full process list goes to the file with > redirection
 ps aux > "$report_dir/$report_file"
 
 echo
 echo "Saved $(wc -l < "$report_dir/$report_file" | tr -d ' ') lines of process data to $report_dir/$report_file"
 ```
 
-### Architectural Details
+A few choices worth noting:
 
-- Double-quoting string variables (`"$report_dir"`) prevents word splitting errors when handling paths containing whitespace.
-- Using `mkdir -p` prevents shell execution failures when targeting existing directory structures.
-- `sort -rk 3` sorts descending based on column 3 (%CPU). `cut -c1-110` truncates terminal display width to prevent line wrapping while storing full untruncated output in the target file.
-- The `>` redirection operator truncates and overwrites destination file content on each invocation.
+- Variables are quoted everywhere they are expanded, so a directory name with a space works.
+- `mkdir -p` does not fail if the directory already exists, so the script can be re-run.
+- `sort -rk 3` sorts on the third column of `ps aux` (%CPU) descending; `cut -c1-110` keeps
+  long command lines from wrapping on screen. The file gets the untrimmed list.
+- `>` truncates and rewrites the report each run. Swapping it for `>>` would append instead.
 
-## Execution Procedure
+## Running it
 
 ```bash
 chmod +x sysinfo.sh
 ./sysinfo.sh
 ```
 
-During execution testing, `reports` was specified for destination directory and `processes.txt` for destination output file.
+When prompted I entered `reports` for the directory and `processes.txt` for the file.
 
-System diagnostic output and CPU process summary display:
+Summary block, disk usage, and the top processes:
 
 ![script output](screenshots/script-output.png)
 
-Verification of output file creation and line count analysis via `ls`, `head`, and `wc -l`:
+The report that was written, checked with `ls`, `head` and `wc -l`:
 
 ![saved report](screenshots/saved-report.png)
 
-*Note*: The generated `reports/` directory represents a runtime output artifact and is excluded from version control via `.gitignore`.
----
-
-**Tejas Kumat** · Roll No. 24BCS10299
+The `reports/` directory is a run-time artefact and is not committed.

@@ -1,4 +1,5 @@
 import com.sun.net.httpserver.HttpServer;
+
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 
@@ -10,13 +11,13 @@ public class Main {
             String body = "<h1>Hello World</h1><p>Served by Java "
                     + System.getProperty("java.version") + " inside a container.</p>";
             byte[] bytes = body.getBytes();
-            exchange.getResponseHeaders().add("Content-Type", "text/html; charset=utf-8");
+            exchange.getResponseHeaders().add("Content-Type", "text/html");
             exchange.sendResponseHeaders(200, bytes.length);
             try (OutputStream out = exchange.getResponseBody()) {
                 out.write(bytes);
             }
         });
-        System.out.println("Java HTTP server listening on port " + port);
+        System.out.println("java app listening on " + port);
         server.start();
     }
 }

@@ -1,8 +1,7 @@
-# Generated runtime outputs
+# run-time output from Shell Scripting/sysinfo.sh
 reports/
 
-# Node dependencies & build artifacts
+# local build output
 node_modules/
 dist/
 .DS_Store
-*.log

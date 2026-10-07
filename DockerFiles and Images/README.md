@@ -1,18 +1,16 @@
-# Dockerfiles & Images — Multi-Stage Build Optimization
+# Dockerfiles and Images - multi-stage build
 
-## Fundamentals of Multi-Stage Builds
+## Why multi-stage
 
-Compiled languages (e.g. Go, Java, C++) require heavy compilers and SDK toolchains to build binaries, but only require minimal execution environments at runtime. Single-stage Docker builds ship entire compiler suites, source code, and build caches inside production images.
+A compiled program needs a compiler to build but not to run. A single-stage Dockerfile ships
+the compiler, the source and the build cache along with the binary. A multi-stage Dockerfile
+uses one `FROM` to build and a second, much smaller `FROM` to run, copying across only what
+the second stage needs with `COPY --from=<stage>`.
 
-Multi-stage Docker builds separate build pipelines into distinct stages:
-- **Build Stage (`FROM ... AS builder`)**: Compiles binary artifacts using full SDK environment toolchains.
-- **Runtime Stage (`FROM scratch` or minimal distro)**: Copies *only* compiled production binaries from the build stage using `COPY --from=builder`.
+## The application
 
-## Application Architecture
-
-`main.go` implements a lightweight HTTP server listening on port 8080.
-- Endpoint `/`: Returns dynamic greeting string outputting Go compiler version and container hostname.
-- Endpoint `/health`: Returns HTTP 200 `ok` health check status.
+`main.go` is a tiny HTTP server on port 8080. `/` returns a greeting that includes the Go
+version and the container's hostname; `/health` returns `ok`.
 
 ```go
 package main
@@ -36,81 +34,84 @@ func main() {
 		fmt.Fprintln(w, "ok")
 	})
 
-	log.Println("Listening on port 8080...")
+	log.Println("listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 ```
 
-## Optimized Dockerfile Configuration
+## The Dockerfile
 
 ```dockerfile
-# Stage 1: Compile Go binary with toolchain
-FROM golang:1.23-alpine AS builder
+# Stage 1: compile. The Go toolchain lives only in this stage.
+FROM golang:1.23-alpine AS compile
 WORKDIR /src
 COPY main.go .
 RUN go mod init hello-multistage >/dev/null 2>&1 \
  && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/hello .
 
-# Stage 2: Minimal scratch runtime
+# Stage 2: run. Only the static binary is copied over; no compiler, no shell.
 FROM scratch
-COPY --from=builder /out/hello /hello
+COPY --from=compile /out/hello /hello
 EXPOSE 8080
 ENTRYPOINT ["/hello"]
 ```
 
-### Engineering Details
+Details that matter:
 
-- `CGO_ENABLED=0`: Produces a statically linked C-library-independent Go binary capable of running on `scratch` (an empty root filesystem image).
-- `-ldflags="-s -w"`: Strips debugging information and symbol tables, reducing final binary footprint.
-- Stage naming (`AS builder`): Enables explicit stage target referencing.
-- JSON Exec Form (`ENTRYPOINT ["/hello"]`): Ensures direct binary invocation without requiring `/bin/sh`.
+- `CGO_ENABLED=0` produces a fully static binary, so it can run on `scratch`, an image with
+  literally nothing in it.
+- `-ldflags="-s -w"` strips the symbol table and debug info, roughly halving the binary.
+- The stage is named `compile` so the second stage can reference it by name instead of index.
+- Because there is no shell in `scratch`, `ENTRYPOINT` uses the exec form (JSON array).
 
-## Build, Run, and Verification Workflow
+## Build, run, verify
 
 ```bash
 docker build -t hello-multistage .
 docker run -d --name multistage -p 8080:8080 hello-multistage
 
 curl http://localhost:8080
-# Output: Hello World from a go1.23.12 binary running in container 3a4b23739a8c
+# Hello World from a go1.23.12 binary running in container 3a4b23739a8c
 
 curl http://localhost:8080/health
-# Output: ok
+# ok
 
 docker ps --filter name=multistage
 docker logs multistage
 ```
 
-## Image Footprint Reduction
+`docker ps` showed the container `Up` with `0.0.0.0:8080->8080/tcp`, and the log had the
+`listening on :8080` line.
 
-| Stage Image Context | Image Size |
+## Size result
+
+| Image | Size |
 |---|---|
-| `golang:1.23-alpine` (Build Base Image) | 365 MB |
-| `hello-multistage` (Final Production Image) | 6.98 MB |
+| `golang:1.23-alpine` (build stage base) | 365 MB |
+| `hello-multistage` (final image) | 6.98 MB |
 
-*Result*: The final production image footprint represents ~2% of the initial SDK build image size.
+The final image is about 2% of the build image. Everything in it is the one binary.
 
-## Execution Screenshots
+## Screenshots
 
-Build output, execution status (`docker ps`), endpoint verification via `curl`, log output, and image footprint metrics:
+Build output, `docker run`, `curl`, `docker ps`, logs and image sizes:
 
 ![build, run, ps](screenshots/build-run-ps.png)
 
-Browser response verification on port 8080:
+The response in a browser on port 8080:
 
 ![app in browser](screenshots/app-in-browser.png)
 
----
+## Deploying three application types
 
-## Multi-Language Deployment Summary
+The `Docker Fundamentals` folder in this repository contains the full source and Dockerfiles
+for six containerised apps. Three of them, one per language runtime, cover this requirement:
 
-The `Docker Fundamentals/` directory in this repository contains source code and Dockerfiles for six application stacks. Three core language runtimes demonstrate distinct deployment strategies:
-
-| Language | Directory Location | Base Image | Container Port | Reference Screenshot |
+| Runtime | Folder | Base image | Port | Screenshot |
 |---|---|---|---|---|
 | Node.js | `Docker Fundamentals/nodejs-app` | `node:20-alpine` | 3000 | `Docker Fundamentals/screenshots/nodejs.png` |
 | Python | `Docker Fundamentals/python-app` | `python:3.12-slim` | 5000 | `Docker Fundamentals/screenshots/python.png` |
 | Java | `Docker Fundamentals/java-app` | `eclipse-temurin:21-jdk` | 8080 | `Docker Fundamentals/screenshots/java.png` |
----
 
-**Tejas Kumat** · Roll No. 24BCS10299
+Each was built with `docker build -t <name> .` and started with `docker run -d -p <host>:<container> <name>`;
+the browser screenshots and the combined `docker ps` output are in that folder's README.

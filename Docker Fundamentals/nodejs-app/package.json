@@ -1,7 +1,7 @@
 {
-  "name": "hello-nodejs",
+  "name": "hello-node",
   "version": "1.0.0",
-  "description": "Minimal Node.js Hello World application",
+  "private": true,
   "main": "app.js",
   "scripts": {
     "start": "node app.js"

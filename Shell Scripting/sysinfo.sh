@@ -1,18 +1,15 @@
-#!/bin/bash
-# sysinfo.sh - System summary generator and process list logger.
-# Displays host statistics and outputs active process records to a custom directory.
 
-current_date=$(date)
-hostname_val=$(hostname)
-active_user=$(whoami)
-disk_info=$(df -h / | awk 'NR==2 {print $5 " used of " $2}')
+today=$(date)
+box=$(hostname)
+me=$(whoami)
+disk=$(df -h / | awk 'NR==2 {print $5 " used of " $2}')
 proc_count=$(ps aux | wc -l | tr -d ' ')
 
 echo "=== System summary ==="
-echo "Date        : $current_date"
-echo "Host        : $hostname_val"
-echo "User        : $active_user"
-echo "Root disk   : $disk_info"
+echo "Date        : $today"
+echo "Host        : $box"
+echo "User        : $me"
+echo "Root disk   : $disk"
 echo "Processes   : $proc_count running"
 echo
 
@@ -30,7 +27,7 @@ read -p "Report file name: " report_file
 mkdir -p "$report_dir"
 touch "$report_dir/$report_file"
 
-# Write detailed process list to target file using stdout redirection
+# Full process list goes to the file with > redirection
 ps aux > "$report_dir/$report_file"
 
 echo

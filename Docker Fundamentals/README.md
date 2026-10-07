@@ -1,24 +1,27 @@
-# Docker Fundamentals — Six Hello World Containers
+# Docker Fundamentals - six Hello World containers
 
-Demonstration of serving identical "Hello World" application endpoints across six distinct software stacks, each provisioned using standalone Dockerfile build context configurations. All six container instances were compiled and launched concurrently.
+The same "Hello World" page served six different ways, each with its own Dockerfile. All six
+images were built and run together on one machine; the screenshots are from that run.
 
-## Directory Structure Overview
+## Layout
 
 ```
 Docker Fundamentals/
-├── nodejs-app/    Node.js 20 runtime, built-in http module (zero external dependencies)
-├── python-app/    Python 3.12 runtime with Flask web framework
-├── java-app/      Java 21 JDK, built-in com.sun.net.httpserver compiled during image build
-├── Apache-app/    Apache HTTP Server (httpd 2.4) serving static HTML page
-├── React-app/     React 18 + Vite frontend, multi-stage build, served via Nginx Alpine
-└── nginx-app/     Nginx Alpine web server serving static HTML page
+├── nodejs-app/    Node.js 20, built-in http module, no dependencies
+├── python-app/    Python 3.12 + Flask
+├── java-app/      Java 21, JDK's built-in HttpServer, compiled during the build
+├── Apache-app/    httpd 2.4 serving a static page
+├── React-app/     React 18 + Vite, built in stage 1, served by Nginx in stage 2
+└── nginx-app/     Nginx serving a static page
 ```
 
-## Port Allocations
+## Ports
 
-Each application binds to its native container port internally. Host port bindings were selected to prevent system port collisions.
+Each container listens on its natural port. Host ports were chosen to avoid clashes. Port 5000
+on macOS is taken by AirPlay Receiver, so Flask is exposed on 5001, and ports 3000/3001 were
+already in use by a local dev server, so Node is exposed on 3002.
 
-| Application Stack | Image Tag | Internal Port | Host Port | Local Access Endpoint |
+| App | Image tag | Container port | Host port | URL |
 |---|---|---|---|---|
 | Node.js | `nodejs-app` | 3000 | 3002 | http://localhost:3002 |
 | Python / Flask | `python-app` | 5000 | 5001 | http://localhost:5001 |
@@ -27,12 +30,11 @@ Each application binds to its native container port internally. Host port bindin
 | React | `react-app` | 80 | 8082 | http://localhost:8082 |
 | Nginx | `nginx-app` | 80 | 8083 | http://localhost:8083 |
 
-## Unified Build & Deployment Workflow
+## Build and run everything
 
-Execute from within `Docker Fundamentals/`:
+From this directory:
 
 ```bash
-# Build container images
 docker build -t nodejs-app ./nodejs-app
 docker build -t python-app ./python-app
 docker build -t java-app   ./java-app
@@ -40,7 +42,6 @@ docker build -t apache-app ./Apache-app
 docker build -t react-app  ./React-app
 docker build -t nginx-app  ./nginx-app
 
-# Launch detached container instances
 docker run -d --name hello-node   -p 3002:3000 nodejs-app
 docker run -d --name hello-python -p 5001:5000 python-app
 docker run -d --name hello-java   -p 8080:8080 java-app
@@ -48,28 +49,40 @@ docker run -d --name hello-apache -p 8081:80   apache-app
 docker run -d --name hello-react  -p 8082:80   react-app
 docker run -d --name hello-nginx  -p 8083:80   nginx-app
 
-# Verify running processes
 docker ps --filter name=hello-
 ```
 
-Teardown command:
+Tear down:
 
 ```bash
 docker rm -f hello-node hello-python hello-java hello-apache hello-react hello-nginx
 ```
 
-## Dockerfile Architecture Breakdown
+## Notes on each Dockerfile
 
-- **`nodejs-app`**: Base image `node:20-alpine`. Copies `package.json` and `app.js`. Standard `http` module eliminates external dependency overhead. `.dockerignore` excludes local `node_modules`.
-- **`python-app`**: Base image `python:3.12-slim`. Copies and installs dependencies prior to copying application source code to optimize Docker layer caching. Flask binds to `0.0.0.0`.
-- **`java-app`**: Base image `eclipse-temurin:21-jdk`. Compiles `Main.java` at image build time using JDK built-in `com.sun.net.httpserver`.
-- **`Apache-app`**: Base image `httpd:2.4`. Single layer copy into `/usr/local/apache2/htdocs/`.
-- **`React-app`**: Multi-stage build process. Stage 1 (`node:20-alpine`) compiles production static assets with `vite build`. Stage 2 (`nginx:alpine`) serves generated `dist/` directory, omitting Node runtime overhead from the final image.
-- **`nginx-app`**: Base image `nginx:alpine`. Direct copy into `/usr/share/nginx/html/`.
+**nodejs-app** - `node:20-alpine`, copies `package.json` and `app.js`, runs `node app.js`.
+There is no `npm install` because the http module ships with Node. `.dockerignore` keeps
+`node_modules` out of the build context.
 
-## Container Image Footprint Analysis
+**python-app** - `python:3.12-slim`. Requirements are copied and installed *before* the
+application code so the pip layer is cached when only `app.py` changes. Flask binds to
+`0.0.0.0`, otherwise it would only listen inside the container.
 
-| Container Image | Footprint Size |
+**java-app** - `eclipse-temurin:21-jdk`. `javac Main.java` runs at build time, so the image
+contains the compiled class. The server uses `com.sun.net.httpserver`, which is part of the
+JDK, so there is no Maven or Gradle to set up.
+
+**Apache-app** - `httpd:2.4`. One `COPY` into `/usr/local/apache2/htdocs/`.
+
+**React-app** - two stages. `node:20-alpine` installs dependencies and runs `vite build`;
+`nginx:alpine` copies the resulting `dist/` folder. The Node toolchain never reaches the final
+image, which is why `react-app` and `nginx-app` end up almost the same size.
+
+**nginx-app** - `nginx:alpine`. One `COPY` into `/usr/share/nginx/html/`.
+
+## Image sizes from the run
+
+| Image | Size |
 |---|---|
 | nginx-app | 102 MB |
 | react-app | 102 MB |
@@ -78,25 +91,25 @@ docker rm -f hello-node hello-python hello-java hello-apache hello-react hello-n
 | python-app | 234 MB |
 | java-app | 744 MB |
 
-*Analysis*: The Java image footprint is larger due to carrying full JDK binaries. Utilizing a JRE runtime or `jlink` custom image generation drastically reduces image size.
+The Java image is large because it carries a full JDK. Swapping the runtime stage to a JRE image
+or using `jlink` would shrink it considerably; that is the same idea the React build uses.
 
-## Endpoint Verification
+## Verifying with curl
 
-Execution of `curl` against HTTP endpoints returns `<h1>Hello World</h1>` payloads. The React application returns an HTML shell containing JavaScript imports rendered dynamically in client browser sessions.
+Five of the six return `<h1>Hello World</h1>` straight from `curl`. The React app returns an
+HTML shell with a `<script type="module">` tag; the heading is rendered by JavaScript in the
+browser, which is why the browser screenshot is the real check for that one.
 
-## Execution Screenshots
+## Screenshots
 
-Build output, execution status (`docker ps`), endpoint verification via `curl`, and final image footprint metrics:
+Build, run, `docker ps`, `curl` checks and image sizes:
 
 ![build and run](screenshots/build-and-run.png)
 
-Browser execution view for each application stack:
+Each app in the browser:
 
 | | |
 |---|---|
 | Node.js ![node](screenshots/nodejs.png) | Python ![python](screenshots/python.png) |
 | Java ![java](screenshots/java.png) | Apache ![apache](screenshots/apache.png) |
 | React ![react](screenshots/react.png) | Nginx ![nginx](screenshots/nginx.png) |
----
-
-**Tejas Kumat** · Roll No. 24BCS10299

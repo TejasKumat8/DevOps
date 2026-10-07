@@ -179,6 +179,7 @@ DaemonSets are how log collectors, monitoring agents and CNI plugins are deploye
 kubectl delete ds node-metrics-agent
 kubectl delete deployment campus-backend
 ```
+
 ---
 
-**Tejas Kumat** · Roll No. 24BCS10299
+**Tejas Kumat** · Roll No. 24BCS10301

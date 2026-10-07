@@ -84,6 +84,7 @@ kubectl delete -f webapp-pod.yaml
 ```
 
 ![cleanup](screenshots/cleanup.png)
+
 ---
 
-**Tejas Kumat** · Roll No. 24BCS10299
+**Tejas Kumat** · Roll No. 24BCS10301

@@ -1,102 +1,118 @@
 # Linux Fundamentals
 
-Practical notes and command logs from the Linux administration lab. All commands outlined below were executed within an Ubuntu 24.04 environment (hostname `ubuntu-lab`), with verification outputs captured via screenshots.
+Working notes for the Linux assignment. All commands described herein were executed in an Ubuntu 24.04
+environment (hostname `tejas-devops-lab`) and the output was captured as screenshots.
 
-## Part 1 — Hard Links vs Symbolic (Soft) Links
+## Part 1 - Hard links vs symbolic links
 
-In Linux file systems, a filename acts as an entry in a directory table pointing to an **inode number**. The inode maintains file metadata and references physical data blocks on disk. Links provide multiple mechanisms for accessing target data.
+A file name in Linux is just a directory entry that points at an inode. The inode holds the
+actual metadata and data blocks. Links are two different ways of giving that data another name.
 
-- **Hard Link**: Direct secondary directory pointer to an *existing inode*. Hard links share equal status with the original filename; there is no primary vs secondary distinction. The inode's link counter increments by 1. Data remains on disk until the link count reaches 0.
-- **Symbolic Link (Soft Link)**: An independent reference file holding a target path string. Symlinks possess unique inode numbers. Deleting the target file leaves a dangling link pointing to a non-existent path.
+**Hard link** - a second directory entry pointing at the *same inode*. Both names are equal
+peers; there is no "original". The link count on the inode goes up by one, and the data is only
+freed when the count drops to zero.
 
-### Comparison Table
+**Symbolic (soft) link** - a separate small file whose content is a *path* to another file.
+It has its own inode. If the target is removed the link stays behind but points at nothing.
 
-| Attribute | Hard Link | Symbolic Link |
+| | Hard link | Symbolic link |
 |---|---|---|
-| Target Pointer | Direct Inode reference | String path to target |
-| Inode ID | Identical to source file | Unique distinct Inode |
-| Target Deletion | Data persists, reachable via link | Broken link (dangling pointer) |
-| Cross-Filesystem Support | Not supported | Supported |
-| Directory Linking | Disabled for standard users | Supported |
-| `ls -l` File Indicator | Displays as standard file | Flagged with `l` and `-> target` |
+| What it stores | Inode reference | A path string |
+| Own inode? | No, shares the target's | Yes |
+| Survives deleting the target | Yes, data stays reachable | No, becomes dangling |
+| Works across filesystems | No | Yes |
+| Can point to a directory | No (normal users) | Yes |
+| `ls -l` marker | Looks like a regular file | `l` type, shows `-> target` |
 
-### Command Execution Sequence
+### Commands used
 
 ```bash
-ln notes.txt notes-hard.txt        # Creates a hard link
-ln -s notes.txt notes-soft.txt     # Creates a symbolic link
-ls -li                             # Display inode numbers (-i)
+ln notes.txt notes-hard.txt        # hard link
+ln -s notes.txt notes-soft.txt     # symbolic link
+ls -li                             # -i shows inode numbers
 stat -c "%n inode=%i links=%h" notes.txt notes-hard.txt notes-soft.txt
-rm notes.txt                       # Delete original file name
-unlink notes-soft.txt              # Remove soft link entry
+rm notes.txt                       # delete the original name
+unlink notes-soft.txt              # remove a link (same as rm)
 ```
 
-### Observation & Findings
+### What the run showed
 
-- `notes.txt` and `notes-hard.txt` shared the exact inode (`2467326`) with a link count of 2.
-- `notes-soft.txt` registered a separate inode ID with a link count of 1.
-- Editing content through `notes-hard.txt` reflected immediately in `notes.txt` because both reference identical data blocks.
-- Removing `notes.txt` left `notes-hard.txt` fully functional and accessible. Attempting to view `notes-soft.txt` resulted in `No such file or directory`.
+- `notes.txt` and `notes-hard.txt` had the same inode (`2467326`) and a link count of 2.
+- `notes-soft.txt` had a different inode and a link count of 1.
+- Appending to the hard link changed `notes.txt` too, since they are the same data.
+- After `rm notes.txt`, the hard link still printed both lines. The symlink returned
+  `No such file or directory`.
 
 ![hard link vs soft link](screenshots/hard-vs-soft-link.png)
 
----
+## Part 2 - useradd vs adduser
 
-## Part 2 — `useradd` vs `adduser`
+Both create users, but they sit at different levels.
 
-Both tools manage user creation on Linux systems, operating at different system abstraction layers.
+- `useradd` is the low-level binary from the shadow-utils package. It does exactly what the
+  flags say and nothing more. Without `-m` there is no home directory, without `-s` the shell is
+  the system default (`/bin/sh` on Debian-based systems), and no password is set.
+- `adduser` is a Perl front-end shipped by Debian and Ubuntu. It calls `useradd` internally,
+  but it also creates the home directory, copies `/etc/skel`, picks the next free UID, sets
+  `/bin/bash`, adds the user to the `users` group, and prompts for a password and full name.
 
-- `useradd`: Low-level binary utility provided by `shadow-utils`. It executes minimal setup strictly governed by supplied flags. Without `-m`, home directories are omitted; without `-s`, system default shell (`/bin/sh`) is assigned, leaving passwords uninitialized.
-- `adduser`: High-level Perl wrapper script native to Debian/Ubuntu distributions. Calls `useradd` under the hood while automating home directory provisioning (`/etc/skel` copy), shell configuration (`/bin/bash`), group membership assignment, UID selection, and interactive password prompts.
+**Which one on Ubuntu?** `adduser` for interactive admin work, because it leaves the account
+in a usable state in one step. `useradd` is the better choice inside scripts and Dockerfiles
+where you want every detail spelled out and no prompts.
 
-**Recommendation**: Use `adduser` for interactive host user administration. Utilize `useradd` within automated bash scripts and Dockerfiles for explicit configuration control without interactive prompts.
-
-### Command Execution Sequence
+### Commands used
 
 ```bash
-useradd -m -s /bin/bash devuser1
-id devuser1
-grep devuser1 /etc/passwd
+useradd -m -s /bin/bash appuser1
+id appuser1
+grep appuser1 /etc/passwd
 
-adduser --disabled-password --gecos "Dev User Two" devuser2
-id devuser2
-grep devuser2 /etc/passwd
-ls -la /home/devuser2
+adduser --disabled-password --gecos "Dev User Two" appuser2
+id appuser2
+grep appuser2 /etc/passwd
+ls -la /home/appuser2
 ```
 
-The flags `--disabled-password` and `--gecos` enable non-interactive execution for `adduser`.
+`--disabled-password` and `--gecos` were passed so the run is non-interactive; without them
+`adduser` prompts for a password and the name fields.
 
-### Observation & Findings
+### What the run showed
 
-- `useradd` configured `devuser1` with basic defaults: UID 1001, primary group, and an empty home directory.
-- `adduser` executed a detailed step-by-step provision: auto-allocated UID 1002, created user group, populated `/home/devuser2` with shell configuration templates (`.bashrc`, `.profile`), and set GECOS fields.
-- *Note*: Standard `ubuntu:24.04` minimal images require manual installation via `apt-get install adduser`.
+- `useradd` created `appuser1` with only the basics: uid 1001, one group, an empty home.
+- `adduser` printed each step it took: choosing uid 1002, creating the group, creating the home,
+  copying skeleton files, and adding the user to the extra `users` group. The GECOS field
+  (`Dev User Two,,,`) and `/bin/bash` shell show up in `/etc/passwd`, and the home directory
+  already contains `.bashrc`, `.profile` and `.bash_logout`.
+- Note: the stock `ubuntu:24.04` container image does not ship `adduser`, so it was installed
+  first with `apt-get install adduser`.
 
 ![useradd vs adduser](screenshots/useradd-vs-adduser.png)
 
----
+## Part 3 - journalctl
 
-## Part 3 — `journalctl` System Log Management
+`journalctl` queries the binary log kept by `systemd-journald`. Instead of grepping through
+`/var/log/*.log`, you filter the journal by unit, priority, boot, or time range.
 
-`journalctl` queries the centralized binary logs maintained by `systemd-journald`. It replaces legacy plain-text log grepping with structured filtering based on unit, priority, boot session, or time window.
-
-### Common Usage Patterns
+Frequently used forms:
 
 ```bash
-journalctl                      # Display entire journal (paged)
-journalctl -b                   # Filter entries for current boot session
-journalctl -n 20                # Tail last 20 log lines
-journalctl -f                   # Live stream log entries (follow mode)
-journalctl -u cron              # Filter entries for specific unit
-journalctl -p err               # Filter by priority level (error and above)
+journalctl                      # everything, oldest first (paged)
+journalctl -b                   # only the current boot
+journalctl -n 20                # last 20 lines
+journalctl -f                   # follow, like tail -f
+journalctl -u cron              # a single unit's log
+journalctl -p err               # priority err and worse
 journalctl --since "2 minutes ago"
 journalctl --since today --until "1 hour ago"
-journalctl --no-pager           # Direct stdout formatting for scripting
+journalctl --no-pager           # plain output, useful in scripts
 ```
 
-### Hands-on Verification: Service Logging
+### Practice: reading a service's log
 
-Since standard containers run without systemd init by default, testing was performed inside a privileged `ubuntu:24.04` container running systemd (`/usr/lib/systemd/systemd`). Once active (`systemctl is-system-running`), `cron.service` was restarted and inspected:
+A container has no init system, so to test this properly I started `ubuntu:24.04` with
+`systemd` installed and `/usr/lib/systemd/systemd` as PID 1 (`--privileged` and the host's
+cgroup namespace are required). Once `systemctl is-system-running` reported `running`, I
+restarted `cron.service` and then pulled its log entries in several ways:
 
 ```bash
 systemctl restart cron
@@ -107,103 +123,107 @@ journalctl --no-pager -p err -b -n 5
 journalctl --no-pager --since "2 minutes ago" -n 5
 ```
 
-The output confirmed `cron` service start/stop events under `-u cron`. Filtering with `-p err` produced `-- No entries --` as no errors occurred during the test window.
+The `-u cron` output shows the stop/start pair from the restart and cron's own startup lines,
+the `-p err` filter returned `-- No entries --` because nothing had failed, and the time filter
+returned only the recent lines.
 
 ![journalctl](screenshots/journalctl.png)
 
----
+## Part 4 - Command cheat sheet
 
-## Part 4 — Linux Command Reference Sheet
+Grouped by what I reach for them.
 
-### Navigation & Discovery
+**Where am I, what is here**
 
-| Command | Summary |
+| Command | Notes |
 |---|---|
-| `pwd` | Output working directory path |
-| `ls -la` | List files including hidden dotfiles with permissions |
-| `cd -` | Switch back to previous directory location |
-| `tree -L 2` | Display folder hierarchy up to depth 2 |
-| `find . -name "*.txt"` | Search workspace matching file patterns |
-| `du -sh *` | Display disk usage of items in current directory |
+| `pwd` | print working directory |
+| `ls -la` | long listing including dotfiles |
+| `cd -` | jump back to the previous directory |
+| `tree -L 2` | directory tree, two levels (needs the `tree` package) |
+| `find . -name "*.txt"` | search by name; `-type f`, `-mtime -1` for filters |
+| `du -sh *` | size of each item in the current directory |
 
-### File Manipulation & Structure
+**Creating, moving, removing**
 
-| Command | Summary |
+| Command | Notes |
 |---|---|
-| `mkdir -p a/b/c` | Recursively create parent and nested directories |
-| `touch file` | Create empty file or update access timestamp |
-| `cp -r src dst` | Copy files or directories recursively (`-r`) |
-| `mv old new` | Relocate or rename files and directories |
-| `rm -rf dir` | Forceful recursive removal of directories |
+| `mkdir -p a/b/c` | create nested directories in one go |
+| `touch file` | create an empty file or bump its timestamp |
+| `cp -r src dst` | copy; `-r` for directories |
+| `mv old new` | move or rename |
+| `rm -rf dir` | remove recursively without prompting; be careful |
 
-### File Viewing & Content Inspection
+**Reading files**
 
-| Command | Summary |
+| Command | Notes |
 |---|---|
-| `cat file` | Print entire file content to terminal |
-| `less file` | Paginated viewer (`/` search, `q` exit) |
-| `head -n 5` / `tail -n 5` | Output top or bottom line lines of file |
-| `tail -f log` | Stream real-time file updates |
-| `grep -rn "text" .` | Search pattern recursively showing line numbers |
-| `wc -l file` | Count total lines in target file |
+| `cat file` | dump the whole file |
+| `less file` | page through it; `/` to search, `q` to quit |
+| `head -n 5` / `tail -n 5` | first or last lines |
+| `tail -f log` | follow a growing file |
+| `grep -rn "text" .` | recursive search with line numbers |
+| `wc -l file` | count lines |
 
-### Security & Access Control
+**Permissions and ownership**
 
-| Command | Summary |
+| Command | Notes |
 |---|---|
-| `chmod 640 file` | Assign owner (rw-), group (r--), others (---) |
-| `chmod +x script.sh` | Grant executable bit permission |
-| `chown user:group file` | Reassign ownership rights |
-| `umask` | View or configure system default file creation mask |
+| `chmod 640 file` | owner rw, group r, others nothing |
+| `chmod +x script.sh` | make executable |
+| `chown user:group file` | change owner and group |
+| `umask` | default permission mask for new files |
 
-### User Management & Identity
+**Users and identity**
 
-| Command | Summary |
+| Command | Notes |
 |---|---|
-| `whoami` / `id` | Display current active user identity and group memberships |
-| `sudo adduser name` | Provision new user account interactively |
-| `passwd name` | Update password for target user account |
-| `su - name` | Switch user session with environment setup |
-| `groups name` | Output active group assignments for user |
+| `whoami` / `id` | current user, uid and groups |
+| `sudo adduser name` | create a user interactively |
+| `passwd name` | set or change a password |
+| `su - name` | switch user with a login shell |
+| `groups name` | list group membership |
 
-### Process Monitoring & System Health
+**Processes and resources**
 
-| Command | Summary |
+| Command | Notes |
 |---|---|
-| `ps aux` | Detailed process tree listing |
-| `top` / `htop` | Interactive process resource usage monitor |
-| `kill -15 PID` | Graceful SIGTERM process termination (`-9` for SIGKILL) |
-| `df -h` | Human-readable filesystem storage usage |
-| `free -h` | System RAM usage summary |
-| `uname -a` | Print kernel release and system architecture |
-| `uptime` | System uptime and load averages |
+| `ps aux` | all processes; pipe into `grep` |
+| `top` / `htop` | live view |
+| `kill -15 PID` | ask a process to exit; `-9` to force |
+| `df -h` | disk usage per filesystem |
+| `free -h` | memory |
+| `uname -a` | kernel and architecture |
+| `uptime` | load averages |
 
-### Networking Utilities
+**Networking**
 
-| Command | Summary |
+| Command | Notes |
 |---|---|
-| `ip a` / `ip route` | Network interfaces and routing table details |
-| `ss -tulpn` | Active listening network sockets and process IDs |
-| `ping -c 4 host` | ICMP connectivity probe |
-| `curl -I url` | Fetch HTTP response headers only |
+| `ip a` / `ip route` | interfaces and routing table |
+| `ss -tulpn` | listening sockets and owning processes |
+| `ping -c 4 host` | reachability |
+| `curl -I url` | HTTP headers only |
 
-### Package Management & System Services
+**Services and logs**
 
-| Command | Summary |
+| Command | Notes |
 |---|---|
-| `systemctl status unit` | Check runtime state of target service unit |
-| `systemctl restart unit` | Restart background service unit |
-| `systemctl enable --now unit` | Enable unit on boot and trigger immediate start |
-| `journalctl -u unit -f` | Follow live log output for service unit |
-| `apt update && apt install pkg` | Synchronize index and install packages |
-| `tar -czf out.tgz dir` | Create compressed gzip archive |
-| `tar -xzf out.tgz` | Extract compressed archive |
-| `man cmd` / `cmd --help` | Access built-in documentation manuals |
-| `history \| grep ssh` | Query historical shell command executions |
+| `systemctl status unit` | is it running |
+| `systemctl restart unit` | restart |
+| `systemctl enable --now unit` | start now and on boot |
+| `journalctl -u unit -f` | follow a unit's log |
 
-Session verification demonstrating core permission and process execution commands:
+**Packages and archives**
+
+| Command | Notes |
+|---|---|
+| `apt update && apt install pkg` | Debian/Ubuntu packages |
+| `tar -czf out.tgz dir` | create a gzip tarball |
+| `tar -xzf out.tgz` | extract it |
+| `man cmd` / `cmd --help` | built-in documentation |
+| `history \| grep ssh` | find a command you ran before |
+
+A short session exercising the file, permission and process commands:
 
 ![basic commands](screenshots/basic-commands.png)
----
-
-**Tejas Kumat** · Roll No. 24BCS10299
